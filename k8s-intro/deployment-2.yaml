@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-server
+  template:
+    metadata:
+      labels:
+        app: my-server
+    spec:
+      containers:
+      - name: server
+        image: docker.io/practice/06
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        env:
+          - name: FOO
+            value: BAR
+        command: ["hello_server"]
+        args: ["-root-env-var", "FOO"]
