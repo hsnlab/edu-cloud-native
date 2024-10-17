@@ -3,16 +3,15 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 )
 
 func main() {
-	var(
+	var (
 		envVar   string
-    filePath string
+		filePath string
 	)
 	flag.StringVar(&envVar, "root-env-var", "",
 		"Set root page to the content of the environment variable")
@@ -30,7 +29,7 @@ func main() {
 		if os.Getenv(envVar) != "" {
 			fmt.Fprintf(w, "path exists: %s=%s", envVar, os.Getenv(envVar))
 		} else if _, err := os.Stat(filePath); err == nil {
-			data, err := ioutil.ReadFile(filePath)
+			data, err := os.ReadFile(filePath)
 			if err != nil {
 				fmt.Fprintf(w, "failed reading data from file: %s", err)
 			}
