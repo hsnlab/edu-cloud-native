@@ -4,6 +4,4 @@
         '--write-kubeconfig-mode' \
         '644' \
   	    '--tls-san' \
-	    $(ec2metadata --public-ipv4) \
-	    '--node-external-ip' \
 	    $(ec2metadata --public-ipv4)
