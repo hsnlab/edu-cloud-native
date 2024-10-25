@@ -1,0 +1,74 @@
+#!/bin/bash
+
+# Assume template's UserData has these:
+
+# su ubuntu
+# apt install git
+# cd /home/ubuntu
+# git clone https://github.com/hsnlab/edu-cloud-native.git
+# sudo chown -R ubuntu:ubuntu edu-cloud-native/
+
+# Assume these files exist
+#   ~/.role
+#   ~/.stackid
+
+THIS_SCRIPT=$(realpath $0)
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+K3S_BIN=/usr/local/bin/k3s
+
+function install_server() {
+    args="  --write-kubeconfig-mode 644"
+    args+=" --tls-san $(ec2metadata --public-ipv4)"
+    args+=" --node-external-ip $(ec2metadata --public-ipv4)"
+    args+=" --advertise-address $(ec2metadata --local-ipv4)"
+    if [ -x $K3S_BIN ]; then
+        $K3S_BIN server $args
+    else
+        curl -sfL https://get.k3s.io | sh -s - $args
+    fi
+    if ! which aws; then
+        sudo snap install aws-cli --classic
+    fi
+    # Save info for the agents
+    s3_bucket=s3://$(cat ~/.stackid)
+    src=/var/lib/rancher/k3s/server/node-token
+    aws s3 cp $src $s3_bucket/k3s_token
+    echo "https://$(ec2metadata --public-ipv4):6443" > ~/.k3s_url
+    aws s3 cp ~/.k3s_url $s3_bucket/k3s_url
+}
+
+function install_agent() {
+    # Set K3S_URL and K3S_TOKEN
+    s3_bucket=https://$(cat ~/.stackid).s3.us-east-1.amazonaws.com
+    while ! curl -o ~/.k3s_url -sfL $s3_bucket/k3s_url; do sleep 5; done
+    curl -o ~/.k3s_token -sfL $s3_bucket/k3s_token
+    export K3S_URL=$(cat ~/.k3s_url)
+    export K3S_TOKEN=$(cat ~/.k3s_token)
+
+    if [ -x $K3S_BIN ]; then
+        $K3S_BIN
+    else
+        curl -sfL https://get.k3s.io | sh -s -
+    fi
+    # Remove connecting info as it can get outdated if the server
+    # restarts
+    rm ~/.k3s_url ~/.k3s_token
+}
+
+if [ "$(cat ~/.role)" == server ]; then
+    install_server
+else
+    install_agent
+fi
+
+sudo sed -i -e '/ExecStart=/{s|.*|ExecStart=-'$THIS_SCRIPT'|;q}' \
+     /etc/systemd/system/k3s.service
+
+bashrc=~/.bashrc
+if ! grep -q kubectl.completion $bashrc; then
+    echo >> $bashrc
+    echo "source <(kubectl completion bash)" >> $bashrc
+fi
+if ! which docker; then
+    sudo $SCRIPT_DIR/../k8s-intro/docker-install.sh
+fi
