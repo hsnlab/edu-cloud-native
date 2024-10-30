@@ -26,9 +26,6 @@ function install_server() {
     else
         curl -sfL https://get.k3s.io | sh -s - $args
     fi
-    if ! which aws; then
-        sudo snap install aws-cli --classic
-    fi
     # Save info for the agents
     s3_bucket=s3://$(cat ~/.stackid)
     src=/var/lib/rancher/k3s/server/node-token
@@ -39,9 +36,9 @@ function install_server() {
 
 function install_agent() {
     # Set K3S_URL and K3S_TOKEN
-    s3_bucket=https://$(cat ~/.stackid).s3.us-east-1.amazonaws.com
-    while ! curl -o ~/.k3s_url -sfL $s3_bucket/k3s_url; do sleep 5; done
-    curl -o ~/.k3s_token -sfL $s3_bucket/k3s_token
+    s3_bucket=s3://$(cat ~/.stackid)
+    while ! aws s3 cp --quiet $s3_bucket/k3s_url ~/.k3s_url; do sleep 5; done
+    aws s3 cp --quiet $s3_bucket/k3s_token ~/.k3s_token
     export K3S_URL=$(cat ~/.k3s_url)
     export K3S_TOKEN=$(cat ~/.k3s_token)
 
@@ -55,6 +52,9 @@ function install_agent() {
     rm ~/.k3s_url ~/.k3s_token
 }
 
+if ! which aws; then
+    sudo snap install aws-cli --classic
+fi
 if [ "$(cat ~/.role)" == server ]; then
     install_server
 else
