@@ -44,7 +44,7 @@ function install_agent() {
     export K3S_TOKEN=$(cat $USER_HOME/.k3s_token)
 
     if [ -x $K3S_BIN ]; then
-        $K3S_BIN
+        $K3S_BIN agent
     else
         curl -sfL https://get.k3s.io | sh -s -
     fi
