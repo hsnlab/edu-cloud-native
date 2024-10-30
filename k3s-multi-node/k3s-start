@@ -29,7 +29,7 @@ function install_server() {
     # Save info for the agents
     s3_bucket=s3://$(cat ~/.stackid)
     src=/var/lib/rancher/k3s/server/node-token
-    aws s3 cp $src $s3_bucket/k3s_token
+    sudo aws s3 cp $src $s3_bucket/k3s_token
     echo "https://$(ec2metadata --public-ipv4):6443" > ~/.k3s_url
     aws s3 cp ~/.k3s_url $s3_bucket/k3s_url
 }
