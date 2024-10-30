@@ -15,6 +15,7 @@
 THIS_SCRIPT=$(realpath $0)
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 K3S_BIN=/usr/local/bin/k3s
+USER_HOME=/home/ubuntu
 
 function install_server() {
     args="  --write-kubeconfig-mode 644"
@@ -27,20 +28,20 @@ function install_server() {
         curl -sfL https://get.k3s.io | sh -s - $args
     fi
     # Save info for the agents
-    s3_bucket=s3://$(cat ~/.stackid)
+    s3_bucket=s3://$(cat $USER_HOME/.stackid)
     src=/var/lib/rancher/k3s/server/node-token
     sudo aws s3 cp $src $s3_bucket/k3s_token
-    echo "https://$(ec2metadata --public-ipv4):6443" > ~/.k3s_url
-    aws s3 cp ~/.k3s_url $s3_bucket/k3s_url
+    echo "https://$(ec2metadata --public-ipv4):6443" > $USER_HOME/.k3s_url
+    aws s3 cp $USER_HOME/.k3s_url $s3_bucket/k3s_url
 }
 
 function install_agent() {
     # Set K3S_URL and K3S_TOKEN
-    s3_bucket=s3://$(cat ~/.stackid)
-    while ! aws s3 cp --quiet $s3_bucket/k3s_url ~/.k3s_url; do sleep 5; done
-    aws s3 cp --quiet $s3_bucket/k3s_token ~/.k3s_token
-    export K3S_URL=$(cat ~/.k3s_url)
-    export K3S_TOKEN=$(cat ~/.k3s_token)
+    s3_bucket=s3://$(cat $USER_HOME/.stackid)
+    while ! aws s3 cp --quiet $s3_bucket/k3s_url $USER_HOME/.k3s_url; do sleep 5; done
+    aws s3 cp --quiet $s3_bucket/k3s_token $USER_HOME/.k3s_token
+    export K3S_URL=$(cat $USER_HOME/.k3s_url)
+    export K3S_TOKEN=$(cat $USER_HOME/.k3s_token)
 
     if [ -x $K3S_BIN ]; then
         $K3S_BIN
@@ -49,13 +50,13 @@ function install_agent() {
     fi
     # Remove connecting info as it can get outdated if the server
     # restarts
-    rm ~/.k3s_url ~/.k3s_token
+    rm $USER_HOME/.k3s_url $USER_HOME/.k3s_token
 }
 
 if ! which aws; then
     sudo snap install aws-cli --classic
 fi
-if [ "$(cat ~/.role)" == server ]; then
+if [ "$(cat $USER_HOME/.role)" == server ]; then
     install_server
 else
     install_agent
@@ -64,7 +65,7 @@ fi
 sudo sed -i -e '/ExecStart=/{s|.*|ExecStart=-'$THIS_SCRIPT'|;q}' \
      /etc/systemd/system/k3s.service
 
-bashrc=~/.bashrc
+bashrc=$USER_HOME/.bashrc
 if ! grep -q kubectl.completion $bashrc; then
     echo >> $bashrc
     echo "source <(kubectl completion bash)" >> $bashrc
