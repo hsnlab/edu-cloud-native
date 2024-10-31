@@ -17,6 +17,21 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 K3S_BIN=/usr/local/bin/k3s
 USER_HOME=/home/ubuntu
 
+function exec_init_script() {
+    cd $USER_HOME
+    if [ ! -e .init_param ]; then
+        return
+    fi
+    script_url=$(cat .init_param)
+    if [ -z "$script_url" ]; then
+        return
+    fi
+    curl -sfL "$script_url" -o init_script
+    chmod u+x init_script
+    ./init_script
+    rm init_script .init_param
+}
+
 function install_server() {
     args="  --write-kubeconfig-mode 644"
     args+=" --tls-san $(ec2metadata --public-ipv4)"
@@ -31,8 +46,9 @@ function install_server() {
     s3_bucket=s3://$(cat $USER_HOME/.stackid)
     src=/var/lib/rancher/k3s/server/node-token
     sudo aws s3 cp $src $s3_bucket/k3s_token
-    echo "https://$(ec2metadata --public-ipv4):6443" > $USER_HOME/.k3s_url
+    echo "https://$(ec2metadata --local-ipv4):6443" > $USER_HOME/.k3s_url
     aws s3 cp $USER_HOME/.k3s_url $s3_bucket/k3s_url
+    exec_init_script
 }
 
 function install_agent() {
