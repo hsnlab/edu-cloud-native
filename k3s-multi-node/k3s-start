@@ -89,3 +89,6 @@ fi
 if ! which docker; then
     sudo $SCRIPT_DIR/../k8s-intro/docker-install.sh
 fi
+if ! which uudecode; then
+    sudo apt install sharutils
+fi
