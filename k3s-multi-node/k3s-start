@@ -72,6 +72,9 @@ function install_agent() {
 if ! which aws; then
     sudo snap install aws-cli --classic
 fi
+if ! which uudecode; then
+    sudo apt install sharutils
+fi
 if [ "$(cat $USER_HOME/.role)" == server ]; then
     install_server
 else
@@ -88,7 +91,4 @@ if ! grep -q kubectl.completion $bashrc; then
 fi
 if ! which docker; then
     sudo $SCRIPT_DIR/../k8s-intro/docker-install.sh
-fi
-if ! which uudecode; then
-    sudo apt install sharutils
 fi
