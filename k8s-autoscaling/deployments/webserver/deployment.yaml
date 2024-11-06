@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-webserver
+  labels:
+    app: demo-webserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-webserver
+  template:
+    metadata:
+      labels:
+        app: demo-webserver
+    spec:
+      containers:
+      - name: demo-webserver
+        image: docker.io/balazska/seminar-3-webserver:v2
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
