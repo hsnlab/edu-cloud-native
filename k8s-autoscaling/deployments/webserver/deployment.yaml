@@ -16,13 +16,13 @@ spec:
     spec:
       containers:
       - name: demo-webserver
-        image: docker.io/balazska/seminar-3-webserver:v2
+        image: docker.io/balazska/seminar-3-webserver:v3
         ports:
         - containerPort: 8080
         resources:
           limits:
-            cpu: 100m
+            cpu: 150m
             memory: 128Mi
           requests:
-            cpu: 50m
+            cpu: 75m
             memory: 64Mi
