@@ -23,10 +23,6 @@
   "liveNow": false,
   "panels": [
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "d5414744-c248-426b-b9d7-e66f3bd8de8c"
-      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -97,10 +93,6 @@
       },
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "d5414744-c248-426b-b9d7-e66f3bd8de8c"
-          },
           "editorMode": "code",
           "expr": "sum(rate(seminar_http_requests_total{kubernetes_pod_name=~\"demo-webserver.*\"}[2m])) by (kubernetes_pod_name)",
           "instant": false,
@@ -113,10 +105,6 @@
       "type": "timeseries"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "d5414744-c248-426b-b9d7-e66f3bd8de8c"
-      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -197,10 +185,6 @@
       "pluginVersion": "10.1.5",
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "d5414744-c248-426b-b9d7-e66f3bd8de8c"
-          },
           "disableTextWrap": false,
           "editorMode": "code",
           "expr": "sum by(pod) (rate(container_cpu_usage_seconds_total{pod=~\"demo-webserver.*\"}[2m])) *1000",
@@ -219,10 +203,6 @@
       "type": "timeseries"
     },
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "d5414744-c248-426b-b9d7-e66f3bd8de8c"
-      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -299,10 +279,6 @@
       "pluginVersion": "10.1.5",
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "d5414744-c248-426b-b9d7-e66f3bd8de8c"
-          },
           "editorMode": "code",
           "expr": "sum by (pod) (rate(container_memory_usage_bytes{pod=~\"demo-webserver.*\"}[2m])) / 1024",
           "format": "time_series",
