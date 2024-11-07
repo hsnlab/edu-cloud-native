@@ -276,7 +276,7 @@
         {
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "sum by(pod) (rate(container_cpu_usage_seconds_total{pod=~\"demo-webserver.*\"}[2m])) *1000",
+          "expr": "sum by(pod) (rate(container_cpu_usage_seconds_total{pod=~\"demo-webserver.*\", container!=\"\"}[2m])) *1000",
           "format": "time_series",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
