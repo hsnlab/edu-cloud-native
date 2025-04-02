@@ -1,7 +1,8 @@
 FROM python:3.13-alpine
-COPY . /app
+COPY ./requirements.txt /app/requirements.txt
 WORKDIR /app
 RUN pip install -r requirements.txt
-EXPOSE 8080
+COPY . /app
+EXPOSE 5000
 ENTRYPOINT ["python"]
 CMD ["app.py"]
