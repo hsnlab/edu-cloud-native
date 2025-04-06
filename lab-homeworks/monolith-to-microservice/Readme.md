@@ -2,7 +2,7 @@
 
 ## Overview
 
-Decomposing a monolith application is not trivial, and simple, so let's start small. Your task is to decompose a monolithic image processing application into a set of microservices and deploy them to Kubernetes. 
+Decomposing a monolith application is not trivial, so let's start small. Your task is to decompose a monolithic image processing application into a set of microservices and deploy them to Kubernetes. 
 The original application is defined in [`monolith.py`](./monolith.py) and performs a series of image processing steps to detect objects in images.
 
 ## Original Application
