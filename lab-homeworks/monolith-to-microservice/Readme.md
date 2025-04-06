@@ -22,6 +22,14 @@ https://github.com/PINTO0309/MobileNet-SSD-RealSense/blob/master/caffemodel/Mobi
 https://github.com/PINTO0309/MobileNet-SSD-RealSense/blob/master/caffemodel/MobileNetSSD/MobileNetSSD_deploy.prototxt
 
 ### Run the application
+Start a python virtual env
+```sh
+sudo apt install python3-pip
+sudo apt install python3.12-venv
+python3 -m venv venv
+. venv/bin/activate
+```
+
 Install the dependencies
 ```sh
 pip install -r requirements.txt
@@ -92,6 +100,12 @@ Redis can act as a message queue, so we provide a [`redis.yaml`](./redis.yaml) c
 
 Redis has a python client too that you can use to connect to it.
 
+## Start the Cluster
+
+1. Open AWS Academy login page: https://awsacademy.instructure.com/
+2. Log in.
+3. Start the AWS Academy Learner Lab and open the AWS Management console.
+4. Click on this (CloudFormation) link: https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://vitmac12-resources.s3.amazonaws.com/k3s-multinode.template&stackName=k3s-multinode
 
 
 ## Good luck with the implementation!
