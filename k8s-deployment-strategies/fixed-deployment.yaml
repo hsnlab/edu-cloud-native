@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fixed-webapp
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  minReadySeconds: 10
+  selector:
+    matchLabels:
+      app: fixed-webapp
+  template:
+    metadata:
+      labels:
+        app: fixed-webapp
+    spec:
+      containers:
+      - name: fixed-webapp
+        image: nginx:1.14.2
+        ports:
+        - containerPort: 80 
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  selector:
+    app: fixed-webapp
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP

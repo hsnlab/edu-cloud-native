@@ -1,0 +1,114 @@
+# Nginx ConfigMap with another status code
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-teapot-config
+data:
+  nginx.conf: |
+    events {
+      worker_connections 1024;
+    }
+    http {
+      server {
+        listen 80;
+        location / {
+          return 418 "I'm a teapot";
+        }
+      }
+    }
+---
+# Nginx ConfigMap with delay
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-hello-config
+data:
+  nginx.conf: |
+    events {
+      worker_connections 1024;
+    }
+    http {
+      server {
+        listen 80;
+        location / {
+          return 200 "Hello from nginx";
+        }
+      }
+    }
+---
+# Blue Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blue
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: webapp
+      version: blue
+  template:
+    metadata:
+      labels:
+        app: webapp
+        version: blue
+    spec:
+      containers:
+      - name: webapp
+        image: nginx:1.14.2
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: nginx-hello-config
+
+---
+# Green Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: green
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: webapp
+      version: green
+  template:
+    metadata:
+      labels:
+        app: webapp
+        version: green
+    spec:
+      containers:
+      - name: webapp
+        image: nginx:1.15.2
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: nginx-teapot-config
+
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: webapp-service
+spec:
+  selector:
+    app: webapp
+    version: blue
+  ports:
+  - port: 80
+    targetPort: 80 
