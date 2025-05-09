@@ -32,10 +32,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: my-service
+  name: webapp-service
 spec:
   selector:
-    app: fixed-webapp
+    app: webapp
   ports:
     - protocol: TCP
       port: 80
