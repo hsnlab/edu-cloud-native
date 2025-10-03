@@ -89,8 +89,8 @@ if ! grep -q kubectl.completion $bashrc; then
     echo >> $bashrc
     echo "source <(kubectl completion bash)" >> $bashrc
 fi
-if ! grep -q export.EDITOR=nano $BASHRC; then
-    echo 'export EDITOR=nano' >> $BASHRC
+if ! grep -q export.EDITOR=nano $bashrc; then
+    echo 'export EDITOR=nano' >> $bashrc
 fi
 if ! which docker; then
     sudo $SCRIPT_DIR/../k8s-intro/docker-install.sh
