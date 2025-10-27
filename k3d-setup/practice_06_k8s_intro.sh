@@ -53,11 +53,12 @@ function create_k3d_cluster() {
                         --servers=1 --port=80:80@loadbalancer --port=88:88@loadbalancer
     echo
     k3d cluster list
-    printf "\n>>> K3d cluster info:\n"
-    kubectl cluster-info --context "k3d-${CLUSTER_NAME}"
     ### Import
     printf "\n>>> Import image(s) into cluster[%s]...\n" "${CLUSTER_NAME}"
     k3d image import -c "${CLUSTER_NAME}" "${HELLO_SERVER_IMG}"
+    echo
+    printf "\n>>> K3d cluster info:\n"
+    kubectl cluster-info --context "k3d-${CLUSTER_NAME}"
 }
 
 function delete_k3d_cluster() {
@@ -112,4 +113,4 @@ create_k3d_cluster
 
 # Finish ---------------------------------------------------------------------------------------------------------------
 
-echo -e "\nSetup is finished."
+printf "\nSetup of cluster: %s is finished.\n" "${CLUSTER_NAME}"
