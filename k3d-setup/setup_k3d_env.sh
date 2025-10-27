@@ -1,8 +1,23 @@
 #!/usr/bin/env bash
-
+# Copyright 2025 Janos Czentye
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at:
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 set -eou pipefail
 
 # Config ---------------------------------------------------------------------------------------------------------------
+
+# Dependencies
+DEPS=(docker k3d kubectl)
 
 DOCKER_VER=latest
 K3D_VER=v5.8.3
@@ -41,8 +56,9 @@ function install_k3d() {
 
 function install_kubectl() {
 	printf "\n>>> Install kubectl binary[%s]...\n" "${KUBECTL_VER}"
-	curl -fsSLO "https://dl.k8s.io/release/${KUBECTL_VER}/bin/linux/amd64/kubectl"
-	sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && rm kubectl
+	curl -fsSL -O "https://dl.k8s.io/release/${KUBECTL_VER}/bin/linux/amd64/kubectl" && \
+            sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && \
+            rm kubectl
 	echo
 	(set -x; kubectl version --client)
 }
@@ -57,7 +73,7 @@ function setup_k3d_bash_completion() {
 }
 
 function setup_kubectl_bash_completion() {
-    printf "\n>>> Install Kubectl bash completion...\n"
+    printf "\n>>> Install kubectl bash completion...\n"
     mkdir -p /etc/bash_completion.d
     kubectl completion bash | sudo tee /etc/bash_completion.d/kubectl > /dev/null
     sudo chmod a+r /etc/bash_completion.d/kubectl
@@ -97,7 +113,7 @@ For further information, see https://github.com/hsnlab/edu-cloud-native/tree/mai
 EOF
 }
 
-while getopts ":xsuh" flag; do
+while getopts ":suxh" flag; do
 	case "${flag}" in
         x)
             echo "[x] No setup validation is configured."
@@ -120,13 +136,19 @@ done
 
 # Main -----------------------------------------------------------------------------------------------------------------
 
+# Check for existence of ANY dependencies
+if command -v "${DEPS[@]}" >/dev/null 2>&1 && [ "${UPDATE}" = false ]; then
+    printf "\nSome of required dependencies are already installed, but the update flag (-u) is not set!\n\n"
+    read -rp "Press ENTER to continue anyway or CTRL+C to abort..."
+fi
+
 ### Basic dependencies
 install_deps
 
 ### Docker
-DOCKER_PRE_INSTALLED=$(command -v docker)
+DOCKER_PRE_INSTALLED=$(command -pv docker)
 if ! command -v docker >/dev/null 2>&1 || [ "${UPDATE}" = true ]; then
-    # Binaries
+    # Binary
 	install_docker
     if [ ${NO_CHECK} = false ] && [ -z "${DOCKER_PRE_INSTALLED}" ]; then
         printf "\n>>> Jump into new shell for docker group privilege...\n" && sleep 3s
@@ -178,5 +200,7 @@ if [ ${NO_CHECK} = false ]; then
 EOF
     fi
 fi
+
+# Finish ---------------------------------------------------------------------------------------------------------------
 
 echo -e "\nSetup is finished."
