@@ -19,7 +19,7 @@ set -eou pipefail
 # Dependencies
 DEPS=(docker k3d kubectl)
 
-DOCKER_VER=latest
+DOCKER_VER=28.5.2
 K3D_VER=v5.8.3
 KUBECTL_VER=v1.31.5	# used by k3d v5.8.3 / k3s v1.31.5
 
@@ -35,12 +35,20 @@ TEST_TIMEOUT=60
 
 function install_deps() {
 	printf "\n>>> Install dependencies...\n"
-	sudo apt-get update && sudo apt-get install -y ca-certificates curl bash-completion
+	sudo apt-get update && sudo apt-get install -y apt-transport-https ca-certificates curl \
+	                                                gnupg-agent software-properties-common bash-completion
 }
 
 function install_docker() {
-	printf "\n>>> Install Docker[%s]...\n" "${DOCKER_VER}"
-	curl -fsSL https://get.docker.com/ | VERSION=${DOCKER_VER} sudo sh
+    if command -v docker >/dev/null 2>&1 && [ ${UPDATE} = true ]; then
+        printf "\n>>> Remove previous %s...\n" "$(docker -v)"
+        sudo systemctl stop docker
+        sudo apt-mark unhold docker-ce docker-ce-cli docker-ce-rootless-extras
+        sudo apt-get remove -y docker-ce docker-ce-cli containerd.io docker-compose-plugin docker-ce-rootless-extras \
+                            docker-buildx-plugin docker-model-plugin
+    fi
+	echo -e "\n>>> Install Docker[${DOCKER_VER}]...\n"
+	curl -fsSL https://get.docker.com/ | VERSION=${DOCKER_VER} sh
     # Privileged Docker
     sudo usermod -aG docker "${USER}"
 	echo
@@ -79,6 +87,13 @@ function setup_kubectl_bash_completion() {
     sudo chmod a+r /etc/bash_completion.d/kubectl
     source ~/.bashrc
     echo "Finished."
+}
+
+function post_install() {
+    echo -e "\n>>> Installed dependencies\n"
+    docker --version
+    k3d version
+    kubectl version
 }
 
 # Test actions ---------------------------------------------------------------------------------------------------------
@@ -190,6 +205,7 @@ if [ ${NO_CHECK} = false ]; then
     # Make test
     create_test_cluster
     cleanup_test_cluster
+    post_install
     # Make warning
     if [ -z "${DOCKER_PRE_INSTALLED}" ]; then
         cat <<EOF
