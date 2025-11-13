@@ -15,6 +15,7 @@ server:
     nodePort: 30001
 extraScrapeConfigs: >
   - job_name: demo-webserver
+    fallback_scrape_protocol: PrometheusText0.0.4
     kubernetes_sd_configs:
       - role: pod
     relabel_configs:
