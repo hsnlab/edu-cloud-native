@@ -22,8 +22,8 @@ spec:
   ports:
     - name: http
       protocol: TCP
-      port: 80
-      targetPort: 8080
+      port: 8080
+      targetPort: 80
 ```
 
 ## Example Ingress
