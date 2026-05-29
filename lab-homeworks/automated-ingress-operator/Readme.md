@@ -8,6 +8,20 @@ Moreover, the operator should always maintain a correct rule-set even if an anno
 
 (We call this automation as an operator, but depending on the naming conventions sometimes the word "controller" is used instead for this simple task. See the references.)
 
+## Example HTTP Server
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-http-server
+  labels:
+    app: my-server
+spec:
+  containers:
+  - image: traefik/whoami:latest
+    name: my-http-server
+```
+
 ## Example Service
 ```yaml
 apiVersion: v1
@@ -68,4 +82,34 @@ python3 -m venv venv
 pip install kopf[full-auth]
 mkdir -p ~/.kube
 cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+```
+
+## Testing
+
+For testing purposes, you can run a basic HTTP server directly from CLI as well.
+E.g., 
+```bash
+$ kubectl run my-http-server --image=traefik/whoami:latest --labels="app=my-server"
+```
+
+The (k3s) kubernetes' ingress controller listens on port 80 by default via its endpoint `web` (see annotation in Example Ingress) for incoming traffik.
+
+To test that your ingress route is configured properly, you can use `curl`, `wget`, or any other tool and check the HTTP response. E.g.,
+```bash
+# From the VM in AWS
+$ curl http://localhost:80/aaa
+Hostname: 64e2f08a26f5
+IP: 127.0.0.1
+IP: ::1
+IP: 172.17.0.2
+RemoteAddr: 172.17.0.1:42044
+GET /aaa HTTP/1.1
+Host: localhost:80
+User-Agent: curl/8.5.0
+Accept: */*
+
+# From outside
+$ curl http://<public-IP-of-VM>:<public-VM-port>/aaa
+...
+
 ```
