@@ -1,7 +1,7 @@
 '''
-    You must replace <FMI_1> with one of the tables attributes that identifies the name of the organization
-    You must replace <FMI_2> with the partition key of the organization (use the org_name variable)
-    You must replace <FMI_3> with the sort key of the organization
+    You must replace <FMI_1> with the name of the table attribute that specifies the exact name of the organization
+    You must replace <FMI_2> with the value of the partition key used for identifying the organization whose name we pass to the `get_one_item` function in the `org_name` function attribute
+    You must replace <FMI_3> with the value of the sort key used for identifying the organization (refer to the table items you explored previously)
 '''
 
 import boto3, json

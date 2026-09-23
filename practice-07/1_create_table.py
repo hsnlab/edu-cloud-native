@@ -1,6 +1,6 @@
 '''
     You must replace <FMI_1> with the table name
-    You must replace <FMI_2> with the tyoe of the sort key (RANGE)
+    You must replace <FMI_2> with the type of the sort key (RANGE)
 '''
 
 
