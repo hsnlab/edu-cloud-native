@@ -103,6 +103,26 @@ function installed_k3s_version() {
     $K3S_BIN --version | awk 'NR == 1 { print $3 }'
 }
 
+# K3s, containerd and the pods exhaust root's inotify instances
+# (Ubuntu default: 128), giving "Too many open files" errors (e.g.
+# systemctl, kubectl logs -f).  Raise the limits (never lower them)
+# once; the sysctl.d file keeps them across reboots.
+function raise_inotify_limits() {
+    local conf=/etc/sysctl.d/99-k3s-inotify.conf kv key want cur
+    if [ ! -e $conf ]; then
+        for kv in fs.inotify.max_user_instances=512 \
+                  fs.inotify.max_user_watches=524288; do
+            key=${kv%=*}
+            want=${kv#*=}
+            cur=$(sysctl -n $key)
+            if [ "$cur" -gt "$want" ]; then want=$cur; fi
+            echo "$key = $want"
+        done | sudo tee $conf > /dev/null
+        log "inotify limits set: $(tr '\n' ' ' < $conf)"
+    fi
+    sudo sysctl -q -p $conf
+}
+
 function exec_init_script() {
     cd $USER_HOME
     if [ ! -e .init_param ]; then
@@ -160,6 +180,7 @@ function install_agent() {
     rm -f $USER_HOME/.k3s_url $USER_HOME/.k3s_token $USER_HOME/.k3s_server_version
 }
 
+raise_inotify_limits
 if ! which aws; then
     sudo snap install aws-cli --classic
 fi
