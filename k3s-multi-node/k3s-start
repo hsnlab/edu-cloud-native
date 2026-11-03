@@ -11,11 +11,97 @@
 # Assume these files exist
 #   ~/.role
 #   ~/.stackid
+#
+# Optional files (written by newer templates; if missing, K3s is
+# installed from the stable channel via get.k3s.io, as before):
+#   ~/.k3s_version           "stable" or "pinned" (server only)
+#   ~/.k3s_fallback_version  pinned K3s version, e.g. v1.36.5+k3s1
+#                            (server only)
+#   ~/.k3s_installer_url     copy of K3s install.sh, used if get.k3s.io
+#                            is unreachable
 
 THIS_SCRIPT=$(realpath $0)
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 K3S_BIN=/usr/local/bin/k3s
 USER_HOME=/home/ubuntu
+K3S_LOG=$USER_HOME/k3s-install.log
+K3S_FAILED_MARKER=$USER_HOME/K3S-INSTALL-FAILED--delete-and-redeploy-the-stack
+
+function log() {
+    echo "$(date -Is) $*" | tee -a $K3S_LOG >&2
+}
+
+# Print the K3s version to install on the server (empty: let the
+# installer pick the stable channel, as before).
+function resolve_k3s_version() {
+    local mode fallback v i
+    mode=$(cat $USER_HOME/.k3s_version 2>/dev/null)
+    fallback=$(cat $USER_HOME/.k3s_fallback_version 2>/dev/null)
+    if [ -z "$mode" ]; then
+        log "no ~/.k3s_version: installer picks the stable channel"
+        return
+    fi
+    if [ "$mode" = pinned ]; then
+        log "K3sVersion=pinned: installing $fallback"
+        echo "$fallback"
+        return
+    fi
+    for i in 1 2 3; do
+        v=$(curl -sL --connect-timeout 10 --max-time 15 -o /dev/null \
+                 -w '%{url_effective}' \
+                 https://update.k3s.io/v1-release/channels/stable |
+                sed -e 's|.*/||')
+        if [[ $v == v*+k3s* ]]; then
+            log "K3sVersion=stable: stable channel -> $v"
+            echo "$v"
+            return
+        fi
+        log "stable channel unreachable (attempt $i)"
+        sleep 10
+    done
+    if [ -n "$fallback" ]; then
+        log "FALLBACK: stable channel unreachable, installing pinned $fallback"
+    else
+        log "stable channel unreachable and no pinned version available"
+    fi
+    echo "$fallback"
+}
+
+# Usage: run_k3s_installer VERSION [installer args...]
+# Downloads install.sh from get.k3s.io, or from ~/.k3s_installer_url if
+# that fails, and runs it. On failure leaves a marker file and exits.
+function run_k3s_installer() {
+    local version=$1 installer rc url
+    shift
+    installer=$(mktemp)
+    url=$(cat $USER_HOME/.k3s_installer_url 2>/dev/null)
+    if curl -sfL --connect-timeout 10 --max-time 60 https://get.k3s.io \
+            -o $installer; then
+        log "installer: https://get.k3s.io"
+    elif [ -n "$url" ] && curl -sfL --connect-timeout 10 --max-time 60 \
+                               "$url" -o $installer; then
+        log "FALLBACK: get.k3s.io unreachable, installer: $url"
+    else
+        log "K3s installation FAILED: could not download install.sh"
+        rm -f $installer
+        touch $K3S_FAILED_MARKER
+        exit 1
+    fi
+    log "running installer (INSTALL_K3S_VERSION='$version') $*"
+    INSTALL_K3S_VERSION="$version" sh $installer "$@" 2>&1 | tee -a $K3S_LOG
+    rc=${PIPESTATUS[0]}
+    rm -f $installer
+    if [ $rc -ne 0 ] || [ ! -x $K3S_BIN ]; then
+        log "K3s installation FAILED (installer exit status: $rc)"
+        touch $K3S_FAILED_MARKER
+        exit 1
+    fi
+    log "installed: $($K3S_BIN --version | head -n 1)"
+}
+
+function installed_k3s_version() {
+    $K3S_BIN --version | awk 'NR == 1 { print $3 }'
+}
 
 function exec_init_script() {
     cd $USER_HOME
@@ -40,12 +126,14 @@ function install_server() {
     if [ -x $K3S_BIN ]; then
         $K3S_BIN server $args
     else
-        curl -sfL https://get.k3s.io | sh -s - $args
+        run_k3s_installer "$(resolve_k3s_version)" $args
     fi
-    # Save info for the agents
+    # Save info for the agents (k3s_url last: agents wait for it)
     s3_bucket=s3://$(cat $USER_HOME/.stackid)
     src=/var/lib/rancher/k3s/server/node-token
     sudo aws s3 cp $src $s3_bucket/k3s_token
+    installed_k3s_version > $USER_HOME/.k3s_server_version
+    aws s3 cp $USER_HOME/.k3s_server_version $s3_bucket/k3s_version
     echo "https://$(ec2metadata --local-ipv4):6443" > $USER_HOME/.k3s_url
     aws s3 cp $USER_HOME/.k3s_url $s3_bucket/k3s_url
     exec_init_script
@@ -56,17 +144,20 @@ function install_agent() {
     s3_bucket=s3://$(cat $USER_HOME/.stackid)
     while ! aws s3 cp --quiet $s3_bucket/k3s_url $USER_HOME/.k3s_url; do sleep 5; done
     aws s3 cp --quiet $s3_bucket/k3s_token $USER_HOME/.k3s_token
+    # Same K3s version as the server (missing if the server ran an
+    # older k3s-start: then the installer picks the stable channel)
+    aws s3 cp --quiet $s3_bucket/k3s_version $USER_HOME/.k3s_server_version
     export K3S_URL=$(cat $USER_HOME/.k3s_url)
     export K3S_TOKEN=$(cat $USER_HOME/.k3s_token)
 
     if [ -x $K3S_BIN ]; then
         $K3S_BIN agent
     else
-        curl -sfL https://get.k3s.io | sh -s -
+        run_k3s_installer "$(cat $USER_HOME/.k3s_server_version 2>/dev/null)"
     fi
     # Remove connecting info as it can get outdated if the server
     # restarts
-    rm $USER_HOME/.k3s_url $USER_HOME/.k3s_token
+    rm -f $USER_HOME/.k3s_url $USER_HOME/.k3s_token $USER_HOME/.k3s_server_version
 }
 
 if ! which aws; then
